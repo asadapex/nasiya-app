@@ -1,0 +1,132 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SmsStatus {
+  SENT
+  FAILED
+}
+
+model Admin {
+  id        Int      @id @default(autoincrement())
+  name      String
+  login     String   @unique
+  password  String
+  pin       String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Seller {
+  id               Int                @id @default(autoincrement())
+  image            String?
+  name             String
+  login            String             @unique
+  password         String
+  pin              String
+  balance          Float              @default(0)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  Debtor           Debtor[]
+  NotificationsLog NotificationsLog[]
+  Credits          Credits[]
+}
+
+model Debtor {
+  id                 Int                  @id @default(autoincrement())
+  seller             Seller               @relation(fields: [sellerId], references: [id])
+  sellerId           Int
+  name               String
+  address            String
+  info               String
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  PhoneNumberDebters PhoneNumberDebters[]
+  ImagesDebtors      ImagesDebtors[]
+  Credits            Credits[]
+}
+
+model Credits {
+  id                     Int                @id @default(autoincrement())
+  debtor                 Debtor             @relation(fields: [debtorId], references: [id])
+  seller                 Seller             @relation(fields: [sellerId], references: [id])
+  product_name           String
+  issue_date             DateTime
+  duration               Int
+  total_amount           Float
+  remaining_amount       Float
+  monthly_payment_amount Float
+  notes                  String
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  Payments               Payments[]
+  PaymentSchedules       PaymentSchedules[]
+  debtorId               Int
+  sellerId               Int
+}
+
+model Payments {
+  id           Int      @id @default(autoincrement())
+  credit       Credits  @relation(fields: [creditsId], references: [id])
+  creditsId    Int
+  payment_date DateTime
+  amount       Float
+  notes        String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model PaymentSchedules {
+  id              Int      @id @default(autoincrement())
+  credit          Credits  @relation(fields: [creditsId], references: [id])
+  creditsId       Int
+  due_date        DateTime
+  expected_amount Float
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([creditsId, due_date])
+}
+
+model SMSTemplates {
+  id            Int      @id @default(autoincrement())
+  name          String
+  template_text String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model NotificationsLog {
+  id           Int       @id @default(autoincrement())
+  seller       Seller    @relation(fields: [sellerId], references: [id])
+  sellerId     Int
+  phone_number String
+  message_text String
+  sent_at      DateTime
+  status       SmsStatus
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model PhoneNumberDebters {
+  id           Int      @id @default(autoincrement())
+  debtor       Debtor   @relation(fields: [debtorId], references: [id])
+  debtorId     Int
+  phone_number String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model ImagesDebtors {
+  id        Int      @id @default(autoincrement())
+  debtor    Debtor   @relation(fields: [debtorId], references: [id])
+  debtorId  Int
+  image     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

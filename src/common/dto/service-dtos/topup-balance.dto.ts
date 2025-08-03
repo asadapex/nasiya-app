@@ -1,0 +1,12 @@
+import { ApiProperty } from '@nestjs/swagger';
+import { IsNumber } from 'class-validator';
+
+export class TopUpBalanceDto {
+  @ApiProperty({ type: Number, example: 1 })
+  @IsNumber()
+  id: number;
+
+  @ApiProperty({ type: Number, example: 100 })
+  @IsNumber()
+  amount: number;
+}

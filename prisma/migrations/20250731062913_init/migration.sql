@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Admin" ALTER COLUMN "pin" SET DATA TYPE TEXT;
