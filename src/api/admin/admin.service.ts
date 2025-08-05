@@ -11,14 +11,15 @@ import { Request } from 'express';
 import { CreateAdminDto } from 'src/common/dto/admin-dtos/create-admin.dto';
 import { AdminLoginDto } from 'src/common/dto/admin-dtos/admin-login';
 import { SellerCreateDto } from 'src/common/dto/admin-dtos/seller-create.dto';
-import { generateToken } from 'src/config/TokenGenerate/token-generator';
 import { UserRole } from 'src/common/enums/user-roles';
+import { TokenGeneratorService } from 'src/config/TokenGenerate/token-generator';
 
 @Injectable()
 export class AdminService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
+    private readonly tokenGenerator: TokenGeneratorService,
   ) {}
 
   async findAdmin(login: string) {
@@ -66,7 +67,7 @@ export class AdminService {
         throw new BadRequestException({ message: 'Wrong pin' });
       }
 
-      const token = generateToken(one.id, UserRole.ADMIN);
+      const token = this.tokenGenerator.generateToken(one.id, UserRole.ADMIN);
       return { token };
     } catch (error) {
       if (error != InternalServerErrorException) {

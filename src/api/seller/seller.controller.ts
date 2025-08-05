@@ -8,6 +8,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { SellerService } from './seller.service';
 import { AuthGuard } from 'src/common/guard/auth/auth.guard';
@@ -15,6 +16,7 @@ import { Request } from 'express';
 import { SellerLoginDto } from 'src/common/dto/seller-dtos/seller-login';
 import { CreateDebtorDto } from 'src/common/dto/seller-dtos/create-debtor.dto';
 import { UpdateDebtorDto } from 'src/common/dto/seller-dtos/update-debtor.dto';
+import { ApiQuery } from '@nestjs/swagger';
 
 @Controller('seller')
 export class SellerController {
@@ -33,8 +35,24 @@ export class SellerController {
 
   @UseGuards(AuthGuard)
   @Get('my-debtors')
-  getMyDebtors(@Req() req: Request) {
-    return this.sellerService.getMyDebtors(req);
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    type: String,
+    example: 'createdAt',
+  })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    type: String,
+    enum: ['asc', 'desc'],
+    example: 'desc',
+  })
+  @ApiQuery({ name: 'search', required: false, type: String, example: 'Ali' })
+  getMyDebtors(@Req() req: Request, @Query() query: any) {
+    return this.sellerService.getMyDebtors(req, query);
   }
 
   @UseGuards(AuthGuard)

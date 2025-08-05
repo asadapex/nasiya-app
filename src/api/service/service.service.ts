@@ -3,6 +3,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
+import { PaymentStatus } from '@prisma/client';
 import { Request } from 'express';
 import { PrismaService } from 'src/common/database/prisma/prisma.service';
 import { PayCreditByAmountDto } from 'src/common/dto/service-dtos/pay-credit-byamount.dto';
@@ -67,9 +68,12 @@ export class ServiceService {
           },
         }),
 
-        this.prisma.paymentSchedules.deleteMany({
+        this.prisma.paymentSchedules.updateMany({
           where: {
             id: { in: scheduleIds },
+          },
+          data: {
+            status: PaymentStatus.PAID,
           },
         }),
       ]);
@@ -84,10 +88,10 @@ export class ServiceService {
     }
   }
 
-  async payCreditByAmount(data: PayCreditByAmountDto) {
+  async payCreditByAmount(data: PayCreditByAmountDto, req: Request) {
     try {
       const credit = await this.prisma.credits.findUnique({
-        where: { id: data.creditId },
+        where: { id: data.creditId, sellerId: req['user-id'] },
       });
 
       if (!credit) {
@@ -97,14 +101,35 @@ export class ServiceService {
       const monthlyAmount = credit.monthly_payment_amount;
 
       if (data.amount < monthlyAmount) {
-        await this.prisma.credits.update({
-          where: { id: data.creditId },
-          data: {
-            remaining_amount: {
-              decrement: data.amount,
-            },
+        const nextSchedule = await this.prisma.paymentSchedules.findFirst({
+          where: {
+            creditsId: data.creditId,
+            status: PaymentStatus.PENDING,
           },
+          orderBy: { due_date: 'asc' },
         });
+
+        if (nextSchedule) {
+          await this.prisma.$transaction([
+            this.prisma.credits.update({
+              where: { id: data.creditId },
+              data: {
+                remaining_amount: {
+                  decrement: data.amount,
+                },
+              },
+            }),
+            this.prisma.paymentSchedules.update({
+              where: { id: nextSchedule.id },
+              data: {
+                status: PaymentStatus.BARELY_PAID,
+                expected_amount: {
+                  decrement: data.amount,
+                },
+              },
+            }),
+          ]);
+        }
 
         return {
           message: 'Qisman tolov amalga oshirildi',
@@ -134,8 +159,11 @@ export class ServiceService {
             },
           },
         }),
-        this.prisma.paymentSchedules.deleteMany({
+        this.prisma.paymentSchedules.updateMany({
           where: { id: { in: scheduleIds } },
+          data: {
+            status: PaymentStatus.PAID,
+          },
         }),
       ]);
 
@@ -146,6 +174,9 @@ export class ServiceService {
         remainder: data.amount - totalToDecrement,
       };
     } catch (error) {
+      if (error != InternalServerErrorException) {
+        throw error;
+      }
       console.error(error);
       throw new InternalServerErrorException('Something went wrong');
     }

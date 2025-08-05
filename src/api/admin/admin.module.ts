@@ -3,6 +3,7 @@ import { AdminService } from './admin.service';
 import { AdminController } from './admin.controller';
 import { PrismaModule } from 'src/common/database/prisma/prisma.module';
 import { JwtModule } from '@nestjs/jwt';
+import { TokenGeneratorService } from 'src/config/TokenGenerate/token-generator';
 
 @Module({
   imports: [
@@ -13,6 +14,6 @@ import { JwtModule } from '@nestjs/jwt';
     }),
   ],
   controllers: [AdminController],
-  providers: [AdminService],
+  providers: [AdminService, TokenGeneratorService],
 })
 export class AdminModule {}

@@ -64,31 +64,26 @@ model Credits {
   notes                  String
   createdAt              DateTime           @default(now())
   updatedAt              DateTime           @updatedAt
-  Payments               Payments[]
   PaymentSchedules       PaymentSchedules[]
   debtorId               Int
   sellerId               Int
 }
 
-model Payments {
-  id           Int      @id @default(autoincrement())
-  credit       Credits  @relation(fields: [creditsId], references: [id])
-  creditsId    Int
-  payment_date DateTime
-  amount       Float
-  notes        String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+enum PaymentStatus {
+  PENDING
+  PAID
+  BARELY_PAID
 }
 
 model PaymentSchedules {
-  id              Int      @id @default(autoincrement())
-  credit          Credits  @relation(fields: [creditsId], references: [id])
+  id              Int           @id @default(autoincrement())
+  credit          Credits       @relation(fields: [creditsId], references: [id])
   creditsId       Int
   due_date        DateTime
   expected_amount Float
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  status          PaymentStatus @default(PENDING)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
   @@unique([creditsId, due_date])
 }

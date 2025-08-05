@@ -11,14 +11,15 @@ import { Request } from 'express';
 import { CreateDebtorDto } from 'src/common/dto/seller-dtos/create-debtor.dto';
 import { UpdateDebtorDto } from 'src/common/dto/seller-dtos/update-debtor.dto';
 import { SellerLoginDto } from 'src/common/dto/seller-dtos/seller-login';
-import { generateToken } from 'src/config/TokenGenerate/token-generator';
 import { UserRole } from 'src/common/enums/user-roles';
+import { TokenGeneratorService } from 'src/config/TokenGenerate/token-generator';
 
 @Injectable()
 export class SellerService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
+    private readonly tokenGenerator: TokenGeneratorService,
   ) {}
 
   async loginSeller(data: SellerLoginDto) {
@@ -41,7 +42,7 @@ export class SellerService {
         throw new BadRequestException({ message: 'Wrong pin' });
       }
 
-      const token = generateToken(one.id, UserRole.SELLER);
+      const token = this.tokenGenerator.generateToken(one.id, UserRole.SELLER);
       return { token };
     } catch (error) {
       if (error != InternalServerErrorException) {
@@ -79,24 +80,59 @@ export class SellerService {
     }
   }
 
-  async getMyDebtors(req: Request) {
+  async getMyDebtors(req: Request, query: any) {
     try {
-      const debtors = await this.prisma.debtor.findMany({
-        where: { sellerId: req['user-id'] },
-        include: {
-          PhoneNumberDebters: {
-            select: {
-              id: true,
-              phone_number: true,
+      const {
+        page = 1,
+        limit = 10,
+        sortBy = 'createdAt',
+        sortOrder = 'desc',
+        search = '',
+      } = query;
+
+      const skip = (Number(page) - 1) * Number(limit);
+      const take = Number(limit);
+
+      const where: any = {
+        sellerId: req['user-id'],
+      };
+
+      if (search) {
+        where.OR = [
+          { name: { contains: search, mode: 'insensitive' } },
+          { address: { contains: search, mode: 'insensitive' } },
+          { info: { contains: search, mode: 'insensitive' } },
+        ];
+      }
+
+      const [total, debtors] = await this.prisma.$transaction([
+        this.prisma.debtor.count({ where }),
+        this.prisma.debtor.findMany({
+          where,
+          skip,
+          take,
+          orderBy: {
+            [sortBy]: sortOrder,
+          },
+          include: {
+            PhoneNumberDebters: {
+              select: {
+                id: true,
+                phone_number: true,
+              },
             },
           },
-        },
-      });
-      return debtors;
+        }),
+      ]);
+
+      return {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(total / limit),
+        data: debtors,
+      };
     } catch (error) {
-      if (error != InternalServerErrorException) {
-        throw error;
-      }
       console.log(error);
       throw new InternalServerErrorException();
     }

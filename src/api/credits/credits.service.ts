@@ -33,12 +33,14 @@ export class CreditsService {
       });
 
       for (let i = 0; i < data.duration; i++) {
-        const date = new Date().getMonth() + i;
+        const dueDate = new Date();
+        dueDate.setMonth(dueDate.getMonth() + i);
+
         await this.prisma.paymentSchedules.create({
           data: {
             creditsId: newCredit.id,
             expected_amount: newCredit.monthly_payment_amount,
-            due_date: String(date),
+            due_date: dueDate,
           },
         });
       }
@@ -87,6 +89,7 @@ export class CreditsService {
           },
           include: {
             debtor: true,
+            PaymentSchedules: true,
           },
         }),
         this.prisma.credits.count({ where }),

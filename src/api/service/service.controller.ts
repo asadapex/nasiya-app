@@ -31,7 +31,7 @@ export class ServiceController {
   @UseGuards(AuthGuard)
   @UseGuards()
   @Post('pay-credit-byamount')
-  payCreditByAmount(@Body() data: PayCreditByAmountDto) {
-    return this.serviceService.payCreditByAmount(data);
+  payCreditByAmount(@Body() data: PayCreditByAmountDto, @Req() req: Request) {
+    return this.serviceService.payCreditByAmount(data, req);
   }
 }
