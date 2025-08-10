@@ -62,11 +62,6 @@ export class AdminService {
       if (!isPasswordCorrect) {
         throw new BadRequestException({ message: 'Wrong credentials' });
       }
-
-      if (one.pin && data.pin !== one.pin) {
-        throw new BadRequestException({ message: 'Wrong pin' });
-      }
-
       const token = this.tokenGenerator.generateToken(one.id, UserRole.ADMIN);
       return { token };
     } catch (error) {
@@ -105,7 +100,7 @@ export class AdminService {
     try {
       const one = await this.prisma.admin.findUnique({
         where: { id: req['user-id'] },
-        omit: { password: true, pin: true },
+        omit: { password: true },
       });
       return { ...one, role: 'ADMIN' };
     } catch (error) {

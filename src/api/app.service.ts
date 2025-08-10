@@ -11,6 +11,11 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 export class Application {
   public static async main(): Promise<void> {
     const app = await NestFactory.create<NestExpressApplication>(AppModule);
+    
+    app.enableCors({
+      origin: '*',
+      credentials: true,
+    });
 
     app.use(cookieParser());
 
@@ -39,7 +44,7 @@ export class Application {
     const documentFactory = () => SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('docs', app, documentFactory);
 
-    app.useStaticAssets(join(__dirname, '..', '..', 'uploads'), {
+    app.useStaticAssets(join(__dirname, '..', 'uploads'), {
       prefix: '/file/',
     });
 

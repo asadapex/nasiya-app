@@ -38,10 +38,6 @@ export class SellerService {
         throw new BadRequestException({ message: 'Wrong credentials' });
       }
 
-      if (one.pin !== data.pin) {
-        throw new BadRequestException({ message: 'Wrong pin' });
-      }
-
       const token = this.tokenGenerator.generateToken(one.id, UserRole.SELLER);
       return { token };
     } catch (error) {
@@ -212,9 +208,21 @@ export class SellerService {
     try {
       const one = await this.prisma.seller.findUnique({
         where: { id: req['user-id'] },
-        omit: { password: true, pin: true },
+        omit: { password: true },
       });
-      return { ...one, role: 'SELLER' };
+
+      const debtorCount = await this.prisma.debtor.count({
+        where: {
+          sellerId: req['user-id'],
+        },
+      })
+
+      const allCredits = await this.prisma.credits.findMany({
+        where: {
+          sellerId: req['user-id'],
+        },
+      })
+      return { ...one, role: 'SELLER', debtorCount, creditSum: allCredits.reduce((acc, curr) => acc + curr.total_amount, 0) };
     } catch (error) {
       if (error != InternalServerErrorException) {
         throw error;

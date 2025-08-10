@@ -35,6 +35,9 @@ export class MulterController {
           cb(null, uniqueName);
         },
       }),
+      limits: {
+        fileSize: 100 * 1024 * 1024,
+      },
     }),
   )
   uploadFile(@UploadedFile() file: Express.Multer.File) {
@@ -43,7 +46,7 @@ export class MulterController {
     }
 
     return {
-      url: `http://localhost:3000/file/${file.filename}`,
+      url: `https://dev-api.cryptorig.uz/file/${file.filename}`,
     };
   }
 }

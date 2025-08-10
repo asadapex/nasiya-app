@@ -13,9 +13,4 @@ export class CreateAdminDto {
   @ApiProperty({ type: String, example: 'password123' })
   @IsString()
   password: string;
-
-  @ApiProperty({ type: String, example: '1234' })
-  @IsString()
-  @IsOptional()
-  pin?: string;
 }

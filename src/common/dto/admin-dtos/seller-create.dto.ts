@@ -18,8 +18,4 @@ export class SellerCreateDto {
   @ApiProperty({ type: String, example: 'password123' })
   @IsString()
   password: string;
-
-  @ApiProperty({ type: String, example: '1234' })
-  @IsString()
-  pin: string;
 }
