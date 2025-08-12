@@ -85,14 +85,14 @@ export class SellerService {
         sortOrder = 'desc',
         search = '',
       } = query;
-
+  
       const skip = (Number(page) - 1) * Number(limit);
       const take = Number(limit);
-
+  
       const where: any = {
         sellerId: req['user-id'],
       };
-
+  
       if (search) {
         where.OR = [
           { name: { contains: search, mode: 'insensitive' } },
@@ -100,7 +100,7 @@ export class SellerService {
           { info: { contains: search, mode: 'insensitive' } },
         ];
       }
-
+  
       const [total, debtors] = await this.prisma.$transaction([
         this.prisma.debtor.count({ where }),
         this.prisma.debtor.findMany({
@@ -117,22 +117,36 @@ export class SellerService {
                 phone_number: true,
               },
             },
+            Credits: {
+              select: {
+                remaining_amount: true,
+              },
+            },
           },
         }),
       ]);
-
+  
+      const debtorsWithTotal = debtors.map(debtor => ({
+        ...debtor,
+        totalDebt: debtor.Credits.reduce(
+          (sum, credit) => sum + credit.remaining_amount,
+          0
+        ),
+      }));
+  
       return {
         total,
         page: Number(page),
         limit: Number(limit),
         totalPages: Math.ceil(total / limit),
-        data: debtors,
+        data: debtorsWithTotal,
       };
     } catch (error) {
       console.log(error);
       throw new InternalServerErrorException();
     }
   }
+  
 
   async updateDebtor(data: UpdateDebtorDto, id: number) {
     try {
