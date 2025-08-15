@@ -146,6 +146,115 @@ export class SellerService {
       throw new InternalServerErrorException();
     }
   }
+
+  async getMyDebtor(req: Request, id: number) {
+    try {
+      const debtor = await this.prisma.debtor.findFirst({
+        where: { id, sellerId: Number(req['user-id']) },
+        include: {
+          PhoneNumberDebters: true,
+          ImagesDebtors: true,
+          seller: true,
+          Credits: {
+            include: {
+              PaymentSchedules: true,
+            },
+          },
+        },
+      });
+  
+      if (!debtor) {
+        throw new NotFoundException({ message: 'Debtor not found' });
+      }
+  
+      const result = {
+        id: debtor.id.toString(),
+        name: debtor.name,
+        address: debtor.address,
+        sellerId: debtor.sellerId.toString(),
+        note: debtor.info || null,
+        star: false, // Prisma modelda star yo‘q, default false
+        createdAt: debtor.createdAt.toISOString(),
+        updatedAt: debtor.updatedAt.toISOString(),
+        Debt: debtor.Credits.map((credit) => ({
+          id: credit.id.toString(),
+          productName: credit.product_name,
+          date: credit.issue_date.toISOString(),
+          term: credit.duration,
+          note: credit.notes || null,
+          amount: credit.total_amount,
+          debtorId: credit.debtorId.toString(),
+          sellerId: credit.sellerId.toString(),
+          createdAt: credit.createdAt.toISOString(),
+          updatedAt: credit.updatedAt.toISOString(),
+          Payment: credit.PaymentSchedules.map((p) => ({
+            id: p.id.toString(),
+            debtId: p.creditsId.toString(),
+            amount: p.expected_amount,
+            month: p.due_date.getMonth() + 1,
+            date: p.due_date.toISOString(),
+            isActive: p.status === 'PENDING',
+            createdAt: p.createdAt.toISOString(),
+            updatedAt: p.updatedAt.toISOString(),
+          })),
+          nextPayment: credit.PaymentSchedules[0]
+            ? {
+                id: credit.PaymentSchedules[0].id.toString(),
+                debtId: credit.PaymentSchedules[0].creditsId.toString(),
+                amount: credit.PaymentSchedules[0].expected_amount,
+                month: credit.PaymentSchedules[0].due_date.getMonth() + 1,
+                date: credit.PaymentSchedules[0].due_date.toISOString(),
+                isActive: credit.PaymentSchedules[0].status === 'PENDING',
+                createdAt: credit.PaymentSchedules[0].createdAt.toISOString(),
+                updatedAt: credit.PaymentSchedules[0].updatedAt.toISOString(),
+              }
+            : null,
+          totalPayments: credit.PaymentSchedules.length,
+        })),
+        ImgOfDebtor: debtor.ImagesDebtors.map((img) => ({
+          id: img.id.toString(),
+          name: img.image,
+          debtorId: img.debtorId.toString(),
+          createdAt: img.createdAt.toISOString(),
+          updatedAt: img.updatedAt.toISOString(),
+        })),
+        Phone: debtor.PhoneNumberDebters.map((p) => ({
+          id: p.id.toString(),
+          phoneNumber: p.phone_number,
+          debtorId: p.debtorId.toString(),
+          createdAt: p.createdAt.toISOString(),
+          updatedAt: p.updatedAt.toISOString(),
+        })),
+        Seller: {
+          id: debtor.seller.id.toString(),
+          fullName: debtor.seller.name,
+          phoneNumber: '',
+          email: '',
+          img: debtor.seller.image || '',
+          wallet: debtor.seller.balance,
+          login: debtor.seller.login,
+          password: debtor.seller.password,
+          status: '',
+          refreshToken: '',
+          createdAt: debtor.seller.createdAt.toISOString(),
+          updatedAt: debtor.seller.updatedAt.toISOString(),
+        },
+        totalAmount: debtor.Credits.reduce(
+          (acc, credit) => acc + credit.total_amount,
+          0
+        ),
+      };
+  
+      return result;
+    } catch (error) {
+      console.error(error);
+      if (!(error instanceof InternalServerErrorException)) {
+        throw error;
+      }
+      throw new InternalServerErrorException();
+    }
+  }
+  
   
 
   async updateDebtor(data: UpdateDebtorDto, id: number) {

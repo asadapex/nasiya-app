@@ -56,9 +56,15 @@ export class SellerController {
   }
 
   @UseGuards(AuthGuard)
+  @Get('my-debtor/:id')
+  getMyDebtor(@Req() req: Request, @Param('id') id: number) {
+    return this.sellerService.getMyDebtor(req, +id);
+  }
+
+  @UseGuards(AuthGuard)
   @Patch('update-debtor/:id')
   updateDebtor(@Body() data: UpdateDebtorDto, @Param('id') id: number) {
-    return this.sellerService.updateDebtor(data, id);
+    return this.sellerService.updateDebtor(data, +id);
   }
 
   @UseGuards(AuthGuard)
